@@ -8,8 +8,8 @@ import java.util.Date;
 public class ResponseOrder {
 
     private String productId;
-    private String qty;
-    private String unitPrice;
+    private Integer qty;
+    private Integer unitPrice;
     private Integer totalPrice;
     private Date createdAt;
 
