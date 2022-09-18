@@ -1,11 +1,13 @@
 package me.hellonayeon.userservice.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import java.util.Date;
 import lombok.extern.slf4j.Slf4j;
 import me.hellonayeon.userservice.dto.UserDto;
 import me.hellonayeon.userservice.service.UserService;
 import me.hellonayeon.userservice.vo.RequestLogin;
-import org.bouncycastle.jcajce.BCFKSLoadStoreParameter.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -62,5 +64,15 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 
         String username = ((User) authResult.getPrincipal()).getUsername();
         UserDto userDetails = userService.getUserDetailsByEmail(username);
+
+        String token = Jwts.builder()
+                            .setSubject(userDetails.getUserId())
+                            .setExpiration(new Date(System.currentTimeMillis() +
+                                            Long.parseLong(env.getProperty("token.expiration_time"))))
+                            .signWith(SignatureAlgorithm.HS512, env.getProperty("token.secret"))
+                            .compact();
+
+        response.addHeader("token", token);
+        response.addHeader("userId", userDetails.getUserId());
     }
 }
