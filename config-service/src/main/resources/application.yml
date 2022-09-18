@@ -8,4 +8,7 @@ spring:
     config:
       server:
         git:
-          uri: file:///Users/nayeon/code/git-local-repo
+          uri: https://github.com/hellonayeon/spring-cloud-config.git
+#          # private repository
+#          username: [your username]
+#          password: [your password]
