@@ -60,5 +60,7 @@ public class AuthenticationFilter extends UsernamePasswordAuthenticationFilter {
         FilterChain chain,
         Authentication authResult) throws IOException, ServletException {
 
+        String username = ((User) authResult.getPrincipal()).getUsername();
+        UserDto userDetails = userService.getUserDetailsByEmail(username);
     }
 }
