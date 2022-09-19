@@ -34,6 +34,10 @@ eureka:
 greeting:
   message: Welcome to the simple e-commerce !
 
+logging:
+  level:
+    me.hellonayeon.userservice.client: DEBUG
+
 management:
   endpoints:
     web:

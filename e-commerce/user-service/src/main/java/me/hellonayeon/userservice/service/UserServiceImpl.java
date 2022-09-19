@@ -1,8 +1,10 @@
 package me.hellonayeon.userservice.service;
 
+import feign.FeignException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import me.hellonayeon.userservice.client.OrderServiceClient;
 import me.hellonayeon.userservice.dto.UserDto;
 import me.hellonayeon.userservice.jpa.UserEntity;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     UserRepository userRepository;
@@ -87,10 +90,14 @@ public class UserServiceImpl implements UserService {
 //        List<ResponseOrder> ordersList = orderListResponse.getBody();
 
         // Feign Client
-        List<ResponseOrder> ordersList = orderServiceClient.getOrders(userId);
+        List<ResponseOrder> ordersList = null;
+        try {
+            orderServiceClient.getOrders(userId);
+        } catch (FeignException ex) {
+            log.error(ex.getMessage());
+        }
 
         userDto.setOrders(ordersList);
-
 
         return userDto;
     }
