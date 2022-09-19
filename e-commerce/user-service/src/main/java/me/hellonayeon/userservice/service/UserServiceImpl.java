@@ -1,5 +1,8 @@
 package me.hellonayeon.userservice.service;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import me.hellonayeon.userservice.dto.UserDto;
 import me.hellonayeon.userservice.jpa.UserEntity;
 import me.hellonayeon.userservice.jpa.UserRepository;
@@ -7,16 +10,16 @@ import me.hellonayeon.userservice.vo.ResponseOrder;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import org.springframework.ui.ModelMap;
+import org.springframework.web.client.RestTemplate;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -24,10 +27,16 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
     BCryptPasswordEncoder passwordEncoder;
 
+    Environment env;
+    RestTemplate restTemplate;
+
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder,
+        Environment env, RestTemplate restTemplate) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.env = env;
+        this.restTemplate = restTemplate;
     }
 
     @Override
@@ -68,8 +77,14 @@ public class UserServiceImpl implements UserService {
 
         UserDto userDto = new ModelMapper().map(userEntity, UserDto.class);
 
-        List<ResponseOrder> orders = new ArrayList<>();
-        userDto.setOrders(orders);
+        String orderUrl = String.format(env.getProperty("order_service.url"), userId); ;
+        ResponseEntity<List<ResponseOrder>> orderListResponse =
+            restTemplate.exchange(orderUrl, HttpMethod.GET, null,
+                                        new ParameterizedTypeReference<List<ResponseOrder>>() {});
+        List<ResponseOrder> ordersList = orderListResponse.getBody();
+
+        userDto.setOrders(ordersList);
+
 
         return userDto;
     }
