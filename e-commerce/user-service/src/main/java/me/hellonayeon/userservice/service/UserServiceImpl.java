@@ -3,6 +3,7 @@ package me.hellonayeon.userservice.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import me.hellonayeon.userservice.client.OrderServiceClient;
 import me.hellonayeon.userservice.dto.UserDto;
 import me.hellonayeon.userservice.jpa.UserEntity;
 import me.hellonayeon.userservice.jpa.UserRepository;
@@ -10,10 +11,7 @@ import me.hellonayeon.userservice.vo.ResponseOrder;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.env.Environment;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -30,13 +28,17 @@ public class UserServiceImpl implements UserService {
     Environment env;
     RestTemplate restTemplate;
 
+    OrderServiceClient orderServiceClient;
+
     @Autowired
     public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder,
-        Environment env, RestTemplate restTemplate) {
+        Environment env, RestTemplate restTemplate,
+        OrderServiceClient orderServiceClient) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.env = env;
         this.restTemplate = restTemplate;
+        this.orderServiceClient = orderServiceClient;
     }
 
     @Override
@@ -77,11 +79,15 @@ public class UserServiceImpl implements UserService {
 
         UserDto userDto = new ModelMapper().map(userEntity, UserDto.class);
 
-        String orderUrl = String.format(env.getProperty("order_service.url"), userId); ;
-        ResponseEntity<List<ResponseOrder>> orderListResponse =
-            restTemplate.exchange(orderUrl, HttpMethod.GET, null,
-                                        new ParameterizedTypeReference<List<ResponseOrder>>() {});
-        List<ResponseOrder> ordersList = orderListResponse.getBody();
+        // Rest Template
+//        String orderUrl = String.format(env.getProperty("order_service.url"), userId); ;
+//        ResponseEntity<List<ResponseOrder>> orderListResponse =
+//            restTemplate.exchange(orderUrl, HttpMethod.GET, null,
+//                                        new ParameterizedTypeReference<List<ResponseOrder>>() {});
+//        List<ResponseOrder> ordersList = orderListResponse.getBody();
+
+        // Feign Client
+        List<ResponseOrder> ordersList = orderServiceClient.getOrders(userId);
 
         userDto.setOrders(ordersList);
 
