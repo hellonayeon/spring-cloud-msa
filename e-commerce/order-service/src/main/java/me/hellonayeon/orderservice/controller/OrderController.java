@@ -2,6 +2,7 @@ package me.hellonayeon.orderservice.controller;
 
 import me.hellonayeon.orderservice.dto.OrderDto;
 import me.hellonayeon.orderservice.jpa.OrderEntity;
+import me.hellonayeon.orderservice.messagequeue.KafkaProducer;
 import me.hellonayeon.orderservice.service.OrderService;
 import me.hellonayeon.orderservice.vo.RequestOrder;
 import me.hellonayeon.orderservice.vo.ResponseOrder;
@@ -22,10 +23,12 @@ public class OrderController {
 
     Environment env;
     OrderService orderService;
+    KafkaProducer kafkaProducer;
 
-    public OrderController(Environment env, OrderService orderService) {
+    public OrderController(Environment env, OrderService orderService, KafkaProducer kafkaProducer) {
         this.env = env;
         this.orderService = orderService;
+        this.kafkaProducer = kafkaProducer;
     }
 
     @GetMapping("/health_check")
@@ -45,6 +48,10 @@ public class OrderController {
         OrderDto createOrder = orderService.createOrder(orderDto);
 
         ResponseOrder responseOrder = mapper.map(createOrder, ResponseOrder.class);
+
+        /* send this order to the kafka */
+        kafkaProducer.send("example-catalog-topic", orderDto);
+
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseOrder);
     }
