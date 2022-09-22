@@ -1,8 +1,10 @@
 package me.hellonayeon.orderservice.controller;
 
+import java.util.UUID;
 import me.hellonayeon.orderservice.dto.OrderDto;
 import me.hellonayeon.orderservice.jpa.OrderEntity;
 import me.hellonayeon.orderservice.messagequeue.KafkaProducer;
+import me.hellonayeon.orderservice.messagequeue.OrderProducer;
 import me.hellonayeon.orderservice.service.OrderService;
 import me.hellonayeon.orderservice.vo.RequestOrder;
 import me.hellonayeon.orderservice.vo.ResponseOrder;
@@ -25,10 +27,14 @@ public class OrderController {
     OrderService orderService;
     KafkaProducer kafkaProducer;
 
-    public OrderController(Environment env, OrderService orderService, KafkaProducer kafkaProducer) {
+    OrderProducer orderProducer;
+
+    public OrderController(Environment env, OrderService orderService,
+                            KafkaProducer kafkaProducer, OrderProducer orderProducer) {
         this.env = env;
         this.orderService = orderService;
         this.kafkaProducer = kafkaProducer;
+        this.orderProducer = orderProducer;
     }
 
     @GetMapping("/health_check")
@@ -45,13 +51,19 @@ public class OrderController {
         OrderDto orderDto = mapper.map(orderDetails, OrderDto.class);
         orderDto.setUserId(userId);
 
-        OrderDto createOrder = orderService.createOrder(orderDto);
+        /* JPA */
+//        OrderDto createOrder = orderService.createOrder(orderDto);
+//        ResponseOrder responseOrder = mapper.map(createOrder, ResponseOrder.class);
 
-        ResponseOrder responseOrder = mapper.map(createOrder, ResponseOrder.class);
+        /* Kafka */
+        orderDto.setOrderId(UUID.randomUUID().toString());
+        orderDto.setTotalPrice(orderDetails.getQty() * orderDetails.getUnitPrice());
 
         /* send this order to the kafka */
         kafkaProducer.send("example-catalog-topic", orderDto);
+        orderProducer.send("orders", orderDto);
 
+        ResponseOrder responseOrder = mapper.map(orderDto, ResponseOrder.class);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseOrder);
     }
