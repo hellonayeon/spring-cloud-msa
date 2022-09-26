@@ -26,7 +26,6 @@ spring:
             postLogger: true
 
       routes:
-
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
