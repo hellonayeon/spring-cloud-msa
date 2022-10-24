@@ -1,6 +1,5 @@
 package me.hellonayeon.userservice.service;
 
-import feign.FeignException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -13,6 +12,8 @@ import me.hellonayeon.userservice.vo.ResponseOrder;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreaker;
+import org.springframework.cloud.client.circuitbreaker.CircuitBreakerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,15 +34,19 @@ public class UserServiceImpl implements UserService {
 
     OrderServiceClient orderServiceClient;
 
+    CircuitBreakerFactory circuitBreakerFactory;
+
     @Autowired
     public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder,
         Environment env, RestTemplate restTemplate,
-        OrderServiceClient orderServiceClient) {
+        OrderServiceClient orderServiceClient,
+        CircuitBreakerFactory circuitBreakerFactory) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.env = env;
         this.restTemplate = restTemplate;
         this.orderServiceClient = orderServiceClient;
+        this.circuitBreakerFactory = circuitBreakerFactory;
     }
 
     @Override
@@ -98,7 +103,13 @@ public class UserServiceImpl implements UserService {
 //        }
 
         // Error Decoder
-        List<ResponseOrder> ordersList = orderServiceClient.getOrders(userId);
+//        List<ResponseOrder> ordersList = orderServiceClient.getOrders(userId);
+
+        // Circuit Breaker 사용
+        CircuitBreaker circuitBreaker = circuitBreakerFactory.create("circuit-breaker");
+        List<ResponseOrder> ordersList = circuitBreaker.run(() -> orderServiceClient.getOrders(userId),
+            throwable -> new ArrayList<>());// 수행할 로직, 비정상 수행 시 처리할 로직
+
         userDto.setOrders(ordersList);
 
         return userDto;
